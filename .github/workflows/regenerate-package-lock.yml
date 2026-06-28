@@ -1,0 +1,56 @@
+name: Regenerate package-lock and create PR
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install (update lockfile only)
+        run: |
+          npm ci
+          npm install --package-lock-only
+
+      - name: Commit and push package-lock.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Create or reset the branch to the current commit
+          git checkout -B fix/regenerate-package-lock-next
+          git add package-lock.json
+          if git diff --staged --quiet; then
+            echo "No changes to package-lock.json"
+          else
+            git commit -m "chore: regenerate package-lock.json to resolve next@^14.2.35 and address CVEs"
+            git push --force-with-lease origin fix/regenerate-package-lock-next
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: fix/regenerate-package-lock-next
+          title: chore: regenerate package-lock.json to pick up next@^14.2.35
+          body: |
+            Railway blocked a build because package-lock.json still resolved next@14.2.5, which contains HIGH severity CVEs (CVE-2025-55184, CVE-2025-67779). package.json already specified "next": "^14.2.35" but the lockfile was not regenerated. This workflow regenerates package-lock.json and opens a PR so the lockfile can be reviewed and merged.
+          labels: automated, security
