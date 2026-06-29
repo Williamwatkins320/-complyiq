@@ -7,7 +7,8 @@ export default function Home() {
         <h1>ComplyIQ</h1>
         <p>Launch a secure, multi-tenant SaaS for compliance workflows.</p>
         <div className="actions">
-          <Link href="/">Get started</Link>
+          <Link href="/auth/signup">Get started</Link>
+          <Link href="/auth/signin" className="secondary">Sign in</Link>
         </div>
       </div>
       <section className="features">
