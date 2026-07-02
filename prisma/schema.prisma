@@ -11,27 +11,39 @@ model User {
   id          String    @id @default(uuid())
   email       String    @unique
   name        String?
+  password    String
+  avatar      String?
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   organizations OrganizationUser[]
+  auditLogs   AuditLog[]
+  projects    ProjectUser[]
 }
 
 model Organization {
   id          String    @id @default(uuid())
-  name        String    @unique
+  name        String
   slug        String    @unique
+  description String?
+  logo        String?
+  website     String?
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   users       OrganizationUser[]
   projects    Project[]
+  auditLogs   AuditLog[]
+  compliance  Compliance[]
 }
 
 model OrganizationUser {
   id             String        @id @default(uuid())
-  user           User          @relation(fields: [userId], references: [id])
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         String
-  organization   Organization  @relation(fields: [organizationId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
   role           OrganizationRole
   createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@unique([userId, organizationId])
 }
@@ -40,13 +52,89 @@ enum OrganizationRole {
   OWNER
   ADMIN
   MEMBER
+  VIEWER
 }
 
 model Project {
   id             String    @id @default(uuid())
   name           String
-  slug           String    @unique
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  slug           String
+  description    String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String
+  users          ProjectUser[]
+  compliance     Compliance[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([organizationId, slug])
+}
+
+model ProjectUser {
+  id        String @id @default(uuid())
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  role      ProjectRole
+  createdAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+}
+
+enum ProjectRole {
+  OWNER
+  LEAD
+  MEMBER
+  VIEWER
+}
+
+model Compliance {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  status         ComplianceStatus @default(PENDING)
+  framework      String
+  dueDate        DateTime?
+  completedAt    DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId      String?
+  evidence       Evidence[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+enum ComplianceStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+model Evidence {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  url         String?
+  fileUrl     String?
+  compliance  Compliance @relation(fields: [complianceId], references: [id], onDelete: Cascade)
+  complianceId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AuditLog {
+  id             String    @id @default(uuid())
+  action         String
+  entity         String
+  entityId       String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  changes        String?
   createdAt      DateTime  @default(now())
 }
