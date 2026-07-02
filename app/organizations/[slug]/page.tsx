@@ -1,126 +1,52 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { SiteShell } from '@/components/site-shell';
 
-export default function OrganizationDetail() {
-  const params = useParams();
-  const slug = params.slug as string;
-  const [org, setOrg] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function formatSlug(slug: string) {
+  return slug
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [orgRes, membersRes, projectsRes] = await Promise.all([
-          fetch(`/api/organizations/${slug}`),
-          fetch(`/api/organizations/${slug}/members`),
-          fetch(`/api/organizations/${slug}/projects`),
-        ]);
-
-        if (orgRes.ok) setOrg(await orgRes.json());
-        if (membersRes.ok) setMembers(await membersRes.json());
-        if (projectsRes.ok) setProjects(await projectsRes.json());
-      } catch (err) {
-        console.error('Failed to fetch organization data');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [slug]);
-
-  if (loading) return <div className="alert alert-info">Loading...</div>;
-  if (!org) return <div className="alert alert-error">Organization not found</div>;
+export default function OrganizationDetailPage({ params }: { params: { slug: string } }) {
+  const organizationName = formatSlug(params.slug);
 
   return (
-    <div>
-      <style>{`
-        .org-header {
-          background: white;
-          padding: var(--spacing-xl);
-          border-radius: var(--radius-lg);
-          margin-bottom: var(--spacing-xl);
-          border: 1px solid var(--color-border);
-        }
-        .section {
-          background: white;
-          padding: var(--spacing-xl);
-          border-radius: var(--radius-lg);
-          margin-bottom: var(--spacing-xl);
-          border: 1px solid var(--color-border);
-        }
-        .section h2 {
-          margin-top: 0;
-        }
-      `}</style>
-
-      <div className="org-header">
-        <h1>{org.name}</h1>
-        {org.description && <p>{org.description}</p>}
-        {org.website && <p><a href={org.website} target="_blank" rel="noopener noreferrer">{org.website}</a></p>}
-      </div>
-
-      <div className="section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-          <h2>Members ({members.length})</h2>
-          <Link href={`/organizations/${slug}/members/invite`} className="btn btn-primary btn-sm">Invite Member</Link>
+    <SiteShell>
+      <section className="page-intro">
+        <div className="container">
+          <p className="eyebrow">Organization preview</p>
+          <h1>{organizationName || 'Organization'} workspace</h1>
+          <p className="page-copy">
+            This safe placeholder keeps the route reachable while live organization, membership, and project data are still being connected.
+          </p>
         </div>
-        {members.length === 0 ? (
-          <p>No members yet.</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.id}>
-                  <td>{member.user.name}</td>
-                  <td>{member.user.email}</td>
-                  <td>{member.role}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      </section>
 
-      <div className="section">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--spacing-lg)' }}>
-          <h2>Projects ({projects.length})</h2>
-          <Link href={`/organizations/${slug}/projects/new`} className="btn btn-primary btn-sm">New Project</Link>
+      <section className="section-band">
+        <div className="container card-grid">
+          <article className="card">
+            <h2>Members</h2>
+            <p>Invite teammates and assign program roles once the authentication and membership APIs are enabled.</p>
+            <Link href={`/organizations/${params.slug}/members/invite`} className="btn btn-primary">
+              Invite member
+            </Link>
+          </article>
+          <article className="card">
+            <h2>Projects</h2>
+            <p>Use project placeholders to plan how evidence collection and control tracking will appear in the product.</p>
+            <div className="card-actions">
+              <Link href={`/organizations/${params.slug}/projects/new`} className="btn btn-primary">
+                New project
+              </Link>
+              <Link href="/projects/demo-readiness" className="btn btn-secondary">
+                View sample project
+              </Link>
+            </div>
+          </article>
         </div>
-        {projects.length === 0 ? (
-          <p>No projects yet. Create one to get started!</p>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projects.map((project) => (
-                <tr key={project.id}>
-                  <td><Link href={`/projects/${project.slug}`}>{project.name}</Link></td>
-                  <td>{project.description || '-'}</td>
-                  <td>{new Date(project.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+      </section>
+    </SiteShell>
   );
 }
